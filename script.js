@@ -1,16 +1,17 @@
-const documents = {
-    "ABC123": "documents/sample-document.pdf",
-    "TEST001": "documents/test-document.pdf",
-    "DOC2026": "documents/document-2026.pdf"
-};
+const SUPABASE_URL = "https://cvfttngjkatidcqritej.supabase.co/storage/v1/object/public/documents/sample-document.pdf";
+const SUPABASE_ANON_KEY = "sb_publishable__QwvQ-ILXUykDtkCpgW5DQ_uWAv81IU";
 
-function verifyDocument() {
+
+async function verifyDocument() {
 
     const input = document.getElementById("verificationNumber");
 
     const result = document.getElementById("result");
 
     const verificationNumber = input.value.trim().toUpperCase();
+
+
+    // Check if the user entered a number
 
     if (verificationNumber === "") {
 
@@ -23,31 +24,88 @@ function verifyDocument() {
         return;
     }
 
-    if (documents[verificationNumber]) {
 
-        const pdfURL = documents[verificationNumber];
+    // Show loading message
 
-        result.innerHTML = `
-            <p class="success">
-                Verification successful ✓
-            </p>
+    result.innerHTML = `
+        <p>
+            Checking verification number...
+        </p>
+    `;
 
-            <a
-                href="${pdfURL}"
-                target="_blank"
-                class="view-pdf"
-            >
-                VIEW PDF
-            </a>
-        `;
 
-    } else {
+    try {
+
+        const response = await fetch(
+            `${SUPABASE_URL}/rest/v1/documents?verification_number=eq.${encodeURIComponent(verificationNumber)}&select=pdf_url`,
+            {
+                method: "GET",
+
+                headers: {
+                    "apikey": SUPABASE_ANON_KEY,
+                    "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
+                }
+            }
+        );
+
+
+        if (!response.ok) {
+
+            throw new Error("Database request failed");
+
+        }
+
+
+        const data = await response.json();
+
+
+        // Verification number found
+
+        if (data.length > 0) {
+
+            const pdfURL = data[0].pdf_url;
+
+
+            result.innerHTML = `
+                <p class="success">
+                    Verification successful ✓
+                </p>
+
+                <a
+                    href="${pdfURL}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="view-pdf"
+                >
+                    VIEW PDF
+                </a>
+            `;
+
+
+        } else {
+
+            // Verification number not found
+
+            result.innerHTML = `
+                <p class="error">
+                    Invalid verification number.
+                </p>
+            `;
+
+        }
+
+
+    } catch (error) {
+
+        console.error(error);
 
         result.innerHTML = `
             <p class="error">
-                Invalid verification number.
+                An error occurred while checking the verification number.
+                Please try again.
             </p>
         `;
 
     }
+
 }
